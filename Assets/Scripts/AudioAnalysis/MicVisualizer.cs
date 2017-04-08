@@ -28,11 +28,14 @@ public class MicVisualizer : MonoBehaviour {
 
 	private bool captureHighLoudness = false;
 	private bool captureLowLoudness = false;
+
 	private int loudnessChangeDirection = 0;
+	private float? loudnessAtEdge;
+	const float peakThreshold = 0.5f; // %age of the range considered a "peak"
 
-	private LinkedList<float> loudnessSamples = new LinkedList<float>(); 
+	private LinkedList<float> loudnessSamples = new LinkedList<float>();
 
-	void Start () 
+	void Start ()
 	{
 		frequencyLineRenderer = GetComponent<LineRenderer>();
 		loudnessLineRenderer = GetComponent<LineRenderer>();
@@ -91,26 +94,26 @@ public class MicVisualizer : MonoBehaviour {
 	float meanAverage(LinkedList<float> floatList)
 	{
 		float sum = 0;
-		foreach (float value in floatList)  
-		{  
-			sum += value;  
+		foreach (float value in floatList)
+		{
+			sum += value;
 		}
 		return sum / floatList.Count;
 	}
 
-	private float getStandardDeviation(LinkedList<float> floatList)  
-	{  
+	private float getStandardDeviation(LinkedList<float> floatList)
+	{
 		float average = meanAverage(floatList);
-		float sumOfDerivation = 0;  
-		foreach (float value in floatList)  
-		{  
-			sumOfDerivation += (value) * (value);  
-		}  
-		float sumOfDerivationAverage = sumOfDerivation / (float)(floatList.Count - 1);  
-		return (float)Math.Sqrt(sumOfDerivationAverage - (average*average));  
+		float sumOfDerivation = 0;
+		foreach (float value in floatList)
+		{
+			sumOfDerivation += (value) * (value);
+		}
+		float sumOfDerivationAverage = sumOfDerivation / (float)(floatList.Count - 1);
+		return (float)Math.Sqrt(sumOfDerivationAverage - (average*average));
 	}
 
-	int getDominantFrequencyIndex(float[] buffer) 
+	int getDominantFrequencyIndex(float[] buffer)
 	{
 		float max = buffer[0];
 		int index = 0;
@@ -133,6 +136,7 @@ public class MicVisualizer : MonoBehaviour {
 		return (value - previous) / smoothing;
 	}
 
+
 	void UpdateLoudnessSamples(float loudness) {
 		if (loudnessSamples.Count >= 16) {
 			loudnessSamples.RemoveFirst();
@@ -142,6 +146,8 @@ public class MicVisualizer : MonoBehaviour {
 		float previous = loudnessSamples.Count > 0 ? loudnessSamples.Last.Value : loudness;
 		float delta = loudness - previous;
 		float significantChange = 0.05f;
+		int previousDirection = loudnessChangeDirection;
+
 		loudnessSamples.AddLast(loudness);
 
 		// detect rising edge, falling edge.
@@ -149,32 +155,48 @@ public class MicVisualizer : MonoBehaviour {
 			if (loudness > previous) {
 				if (loudnessChangeDirection <= 0) {
 					// was falling/static, now rising
-					Debug.Log ("Rising loudness: previous " + previous + ", current: " + loudness); 
+					Debug.Log ("UpdateLoudnessSamples: Rising loudness: previous " + previous + ", current: " + loudness);
 					loudnessChangeDirection = 1;
 				}
 			}
 			else if (loudness < previous) {
-				if (loudnessChangeDirection <= 0) {
-					Debug.Log("Falling loudness: previous " + previous + ", current: " + loudness); 
+				if (loudnessChangeDirection >= 0) {
+					Debug.Log("UpdateLoudnessSamples: Falling loudness: previous " + previous + ", current: " + loudness);
 					loudnessChangeDirection = -1;
 				}
 			}
 		} else {
 			Debug.Log ("Loudness is stable: " + loudness + ", delta: " + delta);
 		}
-		if (Input.GetKeyDown(KeyCode.S)) {
-			Debug.Log("UpdateLoudnesSamples" + 
-				", loudness: " + loudness + 
-				", previous: " + previous + 
+		if (Input.GetKey(KeyCode.S)) {
+			Debug.Log("UpdateLoudnessSamples: " +
+				", loudness: " + loudness +
+				", previous: " + previous +
+				", delta: " + delta +
+				", loudnessChangeDirection: " + loudnessChangeDirection +
 				", Count: " + loudnessSamples.Count
 			);
 		}
+		if (previousDirection != loudnessChangeDirection) {
+			if (loudnessChangeDirection < 0 && loudnessAtEdge.HasValue) {
+				// falling edge, was this a significant peak?
+				float peakMagnitude = loudness - loudnessAtEdge.Value;
+				float deviation = getStandardDeviation (loudnessSamples);
+				if (peakMagnitude >= peakThreshold) {
+					Debug.Log ("UpdateLoudnessSamples, detected a peak: " + peakMagnitude +
+					", deviation: " + deviation);
+				} else {
+					Debug.Log ("UpdateLoudnessSamples, not a peak: " + peakMagnitude +
+						", deviation: " + deviation);
+				}
+			}
+			loudnessAtEdge = loudness;
+		}
 
-		float deviation = getStandardDeviation(loudnessSamples);
 		#if false
-		DebugLog("UpdateLoudnesSamples" + 
-			", loudness: " + loudness + 
-			", Count: " + loudnessSamples.Count + 
+		DebugLog("UpdateLoudnesSamples" +
+			", loudness: " + loudness +
+			", Count: " + loudnessSamples.Count +
 			", deviation: " + deviation);
 		#endif
 	}
@@ -208,13 +230,13 @@ public class MicVisualizer : MonoBehaviour {
 		// the frequency as a float within the calibrated upper/lower range
 		float smoothedLoudness = smooth (loudnessPcent, loudnessSamples, 1.5f);
 		#if false
-		Debug.Log ("Check: " + 
-			", meanLoudness: " + meanLoudness + 
-			", loudness: " + loudness + 
-			", loudnessPcent: " + loudnessPcent + 
-			", smoothedLoudness: " + smoothedLoudness + 
-			", loudnessRange: " + loudnessRange + 
-			", lowerLoudness: " + (float)lowerLoudness + 
+		Debug.Log ("Check: " +
+			", meanLoudness: " + meanLoudness +
+			", loudness: " + loudness +
+			", loudnessPcent: " + loudnessPcent +
+			", smoothedLoudness: " + smoothedLoudness +
+			", loudnessRange: " + loudnessRange +
+			", lowerLoudness: " + (float)lowerLoudness +
 			", upperLoudness: " + (float)upperLoudness
 		);
 		#endif
