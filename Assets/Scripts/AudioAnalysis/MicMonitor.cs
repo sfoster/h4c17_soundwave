@@ -42,11 +42,14 @@ public class MicMonitor : MonoBehaviour
 
     public static MicMonitor Instance;
 
-    // "FFT" stands for Fast Fourier Transform
+    public delegate void ProcessNewMicrophoneBuffer (float[] buffer);
+    public ProcessNewMicrophoneBuffer processNewMicrophoneBuffer;
+
+    // "FFT" stands for Fast Fourier Transform. Spectrum analysis.
     public delegate void ProcessNewMicrophoneFFT(float[] fftSpectrum);
     public ProcessNewMicrophoneFFT processNewMicrophoneFFT;
 
-    // "RMS" stands for Root Mean Square
+    // "RMS" stands for Root Mean Square. Loudness value.
     public delegate void ProcessNewMicrophoneRMS(float rmsIntervalAverage);
     public ProcessNewMicrophoneRMS processNewMicrophoneRMS;
 
@@ -383,6 +386,7 @@ public class MicMonitor : MonoBehaviour
 
                 if (countdownToFFTAnalysis <= 0)
                 {
+					if (processNewMicrophoneBuffer != null) processNewMicrophoneBuffer(B.buf);
                     ProcessAudioBufferFFT(B.buf);
                     countdownToFFTAnalysis = FFT_INTERVAL;
                 }
