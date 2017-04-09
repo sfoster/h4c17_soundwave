@@ -7,14 +7,16 @@ public class MicPitch : MonoBehaviour {
 	public MicMonitor micMonitor;
 
 	private float normalizedPitch;
-	private float lowerBounds;
-	private float upperBounds;
+	private int? lowerBounds;
+	private int? upperBounds;
+	private int? maxFrequency; 
 
 	// returns a value of zero to one
 	public float GetNormalizedPitch ()
 	{
 		return normalizedPitch;
 	}
+	public bool HasNormalizedPitch = false;
 
 	public void SetActive (bool isActive)
 	{
@@ -28,19 +30,41 @@ public class MicPitch : MonoBehaviour {
 		}
 	}
 
-	public void SetLowerBounds (float lowerBounds)
+	public void SetLowerBounds (int lBounds)
 	{
+		lowerBounds = lBounds;
 	}
 
-	public void SetUpperBounds (float upperBounds)
+
+	public void SetUpperBounds (int uBounds)
 	{
+		upperBounds = uBounds;
 	}
 
 	private void HandleNewMicrophoneFFT (float[] buffer)
 	{
-		// determine what the loudest frequency is
-		float loudestFrequency = 0;
-
-		normalizedPitch = Mathf.Clamp01((upperBounds - loudestFrequency) / (upperBounds - lowerBounds));
+		if (!maxFrequency.HasValue) {
+			maxFrequency = buffer.Length;
+		}
+		if (lowerBounds.HasValue && upperBounds.HasValue) {
+			// determine what the loudest frequency is
+			int loudestFrequency = getDominantFrequencyIndex(buffer);
+			normalizedPitch = Mathf.Clamp01((upperBounds.Value - loudestFrequency.Value) / (upperBounds.Value - lowerBounds.Value));
+			HasNormalizedPitch = true;
+		}
 	}
+
+	private int getDominantFrequencyIndex(float[] buffer)
+	{
+		float max = buffer[0];
+		int index = 0;
+		for (int i = 0; i < buffer.Length; i++) {
+			if (buffer [i] > max) {
+				max = buffer [i];
+				index = i;
+			}
+		}
+		return index;
+	}
+
 }

@@ -14,10 +14,6 @@ public class MicVisualizer : MonoBehaviour {
 	Vector3 deltaPosition;
 	Vector3 endPosition;
 
-	private int? maxFrequency;
-	private int? upperFrequency;
-	private int? lowerFrequency;
-
 	private bool captureHighFrequency = false;
 	private bool captureLowFrequency = false;
 
@@ -56,33 +52,6 @@ public class MicVisualizer : MonoBehaviour {
 		MicMonitor.Instance.processNewMicrophoneRMS += PlotLoudness;
 	}
 
-	void Update ()
-	{
-		// reset calibration on arrow key down
-		if (Input.GetKeyDown(KeyCode.P)) {
-			upperFrequency = 0;
-			lowerFrequency = maxFrequency;
-		}
-		// update frequency calibration on next mic input
-		if (Input.GetKey(KeyCode.P)) {
-			Debug.Log ("Calibrate Pitch/Frequency");
-			captureHighFrequency = true;
-			captureLowFrequency = true;
-		}
-
-		// reset calibration on arrow key down
-		if (Input.GetKeyDown(KeyCode.L)) {
-			upperLoudness = 0;
-			lowerLoudness = maxLoudness;
-		}
-		// update loudness calibration on next mic input
-		if (Input.GetKey(KeyCode.L)) {
-			Debug.Log ("Calibrate Loudness");
-			captureHighLoudness = true;
-			captureLowLoudness = true;
-		}
-	}
-
 	float clamp(float value, float lbound, float ubound) {
 		return Math.Max((float)lbound, Math.Min(value, (float)ubound));
 	}
@@ -111,19 +80,6 @@ public class MicVisualizer : MonoBehaviour {
 		}
 		float sumOfDerivationAverage = sumOfDerivation / (float)(floatList.Count - 1);
 		return (float)Math.Sqrt(sumOfDerivationAverage - (average*average));
-	}
-
-	int getDominantFrequencyIndex(float[] buffer)
-	{
-		float max = buffer[0];
-		int index = 0;
-		for (int i = 0; i < buffer.Length; i++) {
-			if (buffer [i] > max) {
-				max = buffer [i];
-				index = i;
-			}
-		}
-		return index;
 	}
 
 	float smooth(float value, LinkedList<float> list, float smoothing) {
