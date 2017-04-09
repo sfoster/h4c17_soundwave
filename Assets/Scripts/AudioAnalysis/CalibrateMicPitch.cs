@@ -6,8 +6,14 @@ public class CalibrateMicPitch : MonoBehaviour {
 
 	public MicPitch micPitch;
 
-	private float upperFrequencyIndex;
-	private float lowerFrequencyIndex;
+	private int upperFrequencyIndex;
+	private int lowerFrequencyIndex;
+
+	void Awake ()
+	{
+		lowerFrequencyIndex = 1000000;
+		upperFrequencyIndex = -1000000;
+	}
 
 	public void SetActive (bool isActive)
 	{

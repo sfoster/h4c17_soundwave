@@ -4,7 +4,7 @@ using UnityEngine;
 
 public class FS_FireSong : FiniteState 
 {
-	float rainFadeDuration = 5;
+	public float rainFadeDuration = 10;
 	public ParticleSystem rainParticles;
 	public ParticleSystem smokeParticles;
 
@@ -32,6 +32,7 @@ public class FS_FireSong : FiniteState
 		rainFadeTimer += Time.deltaTime;
 		float t = 1 - Mathf.Clamp01(rainFadeTimer / rainFadeDuration);
 		rainEmitter.rateOverTimeMultiplier = baseRate * t;
+		RainAudio.instance.SetLowRainVolume(t);
 
 		if (Input.GetKeyDown(KeyCode.Space)) finiteStateController.GoToNextState();
 	}
