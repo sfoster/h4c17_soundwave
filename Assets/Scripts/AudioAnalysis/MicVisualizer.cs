@@ -12,12 +12,6 @@ public class MicVisualizer : MonoBehaviour {
     Vector3 deltaPosition;
     Vector3 endPosition;
 
-	// linePoints is a list 256 of Vector3s we want to plot
-	// each callback we check the frequencies we're passed. 
-	// and create a point that represents frequency (index) and magnitude
-	// push each point on the list. Shift off the oldest. 
-	// then render the points, 
-
 	void Start () 
 	{
 		lineRenderer = GetComponent<LineRenderer>();
@@ -31,19 +25,29 @@ public class MicVisualizer : MonoBehaviour {
         endPosition -= transform.up * maxHeight;
         deltaPosition = endPosition - beginPosition;
 
-        r.enabled = false;
+		r.enabled = false;
         if (heightScalar <= 0) heightScalar = 1;
 
-		MicMonitor.Instance.processNewMicrophoneFFT += RenderBuffer;
-
+		MicMonitor.Instance.processNewMicrophoneFFT += PlotFrequency;
 	}
 
-	void RenderBuffer (float[] buffer)
-	{
-		RenderDominantFrequency (buffer);
+	void PlotFrequency (float[] buffer) {
+		float highest = buffer[0];
+		int highIdx = 0;
+		for (int i = 0; i < buffer.Length; i++) {
+			if (buffer [i] > highest) {
+				highest = buffer [i];
+				highIdx = i;
+			}
+		}
+		float pcent = (float) highIdx / (float) buffer.Length;
+		lineRenderer.positionCount = 2;
+		lineRenderer.SetPosition (0, beginPosition);
+		lineRenderer.SetPosition (1, beginPosition + deltaPosition*pcent);
+		Debug.Log(pcent);
 	}
 
-	void RenderAllFrequencies (float[] buffer)
+	void PlotAllFrequencies (float[] buffer)
 	{
 		Debug.Log(buffer.Length);
 		lineRenderer.positionCount = buffer.Length;
@@ -58,34 +62,7 @@ public class MicVisualizer : MonoBehaviour {
 
 			float pct = (float)i / buffer.Length;
 			float h = val * maxHeight * heightScalar;
-			lineRenderer.SetPosition(i, beginPosition + deltaPosition * pct + Vector3.up * h);
+			lineRenderer.SetPosition(i, beginPosition + deltaPosition * pct + (Vector3.up * h));
 		}
 	}
-
-	void RenderDominantFrequency (float[] buffer)
-	{
-		lineRenderer.positionCount = buffer.Length;
-
-		float highest = buffer[0];
-		float lowest = buffer[0];
-		int highIdx = 0;
-		int lowIdx = 0;
-		for (int i = 0; i < buffer.Length; i++) {
-			if (buffer [i] > highest) {
-				highest = buffer [i];
-				highIdx = i;
-			}
-			if (buffer [i] < highest) {
-				lowest = buffer [i];
-				lowIdx = i;
-			}
-		}
-		Debug.Log ("Highest: " + highest + ", Idx: " + highIdx);
-		Debug.Log ("Lowest: " + lowest + ", LowIdx: " + lowIdx);
-
-		float pct = (float)highest / buffer.Length;
-		float h = highest * maxHeight * heightScalar;
-		lineRenderer.SetPosition(0, beginPosition + deltaPosition * pct + Vector3.up * h);
-	}
-	 
 }
